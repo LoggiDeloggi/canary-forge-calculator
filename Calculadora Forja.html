@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Fórmula de Chance</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .card {
+            flex: 1 1 400px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f8f8;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input, button {
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            border: none;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 18px;
+            color: #333;
+        }
+        .formula {
+            font-family: monospace;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        #tierTable {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        canvas {
+            width: 100%;
+            height: 250px;
+            margin-top: 20px;
+        }
+        .preset-btn {
+            margin: 5px;
+            padding: 5px;
+            background-color: #2196F3;
+            width: auto;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Calculadora de Fórmula de Chance</h1>
+    <div class="formula">Fórmula: chance = A * tier² + B * tier + C</div>
+
+    <div class="container">
+        <div class="card">
+            <h2>Calcular Chance</h2>
+            <p>Insira os coeficientes e o tier para calcular a chance</p>
+            
+            <div>
+                <h3>Presets:</h3>
+                <button class="preset-btn" onclick="loadPreset('ruse')">Ruse (Esquiva)</button>
+                <button class="preset-btn" onclick="loadPreset('onslaught')">Onslaught (Fatal)</button>
+                <button class="preset-btn" onclick="loadPreset('momentum')">Momentum</button>
+                <button class="preset-btn" onclick="loadPreset('transcendance')">Transcendance</button>
+            </div>
+            
+            <label for="coefA">Coeficiente A:</label>
+            <input type="number" id="coefA" step="0.0001" value="0.0307576">
+            
+            <label for="coefB">Coeficiente B:</label>
+            <input type="number" id="coefB" step="0.0001" value="1.440697">
+            
+            <label for="coefC">Coeficiente C:</label>
+            <input type="number" id="coefC" step="0.0001" value="0.026">
+            
+            <label for="tier">Tier do Item (1-10):</label>
+            <input type="number" id="tier" min="1" max="10" value="1">
+            
+            <button onclick="calcularChance()">Calcular Chance</button>
+            
+            <div class="result" id="chanceResult"></div>
+            
+            <div id="tierTable">
+                <h3>Tabela de Chances por Tier</h3>
+                <button onclick="gerarTabelaTiers()">Gerar Tabela</button>
+                <table id="tableTiers">
+                    <thead>
+                        <tr>
+                            <th>Tier</th>
+                            <th>Chance (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tierTableBody">
+                    </tbody>
+                </table>
+            </div>
+            
+            <canvas id="chanceChart"></canvas>
+        </div>
+        
+        <div class="card">
+            <h2>Calcular Coeficientes</h2>
+            <p>Informe as chances para 3 tiers diferentes e calcule os coeficientes A, B, C</p>
+            
+            <label for="tier1">Tier 1:</label>
+            <input type="number" id="tier1" value="1" min="1" max="10">
+            
+            <label for="chance1">Chance para Tier 1 (%):</label>
+            <input type="number" id="chance1" value="1.5" step="0.01" min="0">
+            
+            <label for="tier2">Tier 2:</label>
+            <input type="number" id="tier2" value="5" min="1" max="10">
+            
+            <label for="chance2">Chance para Tier 2 (%):</label>
+            <input type="number" id="chance2" value="12" step="0.01" min="0">
+            
+            <label for="tier3">Tier 3:</label>
+            <input type="number" id="tier3" value="10" min="1" max="10">
+            
+            <label for="chance3">Chance para Tier 3 (%):</label>
+            <input type="number" id="chance3" value="30" step="0.01" min="0">
+            
+            <button onclick="calcularCoeficientes()">Calcular Coeficientes</button>
+            
+            <div class="result" id="coefResult"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let chart = null;
+
+        // Presets
+        const presets = {
+            ruse: {
+                a: 0.0307576,
+                b: 1.440697,
+                c: 0.026
+            },
+            onslaught: {
+                a: 0.05,
+                b: 1.7,
+                c: 0.05
+            },
+            momentum: {
+                a: 0.05,
+                b: 1.9,
+                c: 0.05
+            },
+            transcendance: {
+                a: 0.0127,
+                b: 1.0271,
+                c: 0.0073
+            }
+        };
+
+        function loadPreset(presetName) {
+            const preset = presets[presetName];
+            if (preset) {
+                document.getElementById('coefA').value = preset.a;
+                document.getElementById('coefB').value = preset.b;
+                document.getElementById('coefC').value = preset.c;
+                calcularChance();
+                gerarTabelaTiers();
+            }
+        }
+
+        // Função para calcular a chance
+        function quadraticPoly(a, b, c, tier) {
+            return a * tier * tier + b * tier + c;
+        }
+
+        function calcularChance() {
+            const a = parseFloat(document.getElementById('coefA').value);
+            const b = parseFloat(document.getElementById('coefB').value);
+            const c = parseFloat(document.getElementById('coefC').value);
+            const tier = parseInt(document.getElementById('tier').value);
+            
+            if (isNaN(a) || isNaN(b) || isNaN(c) || isNaN(tier) || tier < 1 || tier > 10) {
+                document.getElementById('chanceResult').innerHTML = "Valores inválidos. Verifique os campos.";
+                return;
+            }
+            
+            const chance = quadraticPoly(a, b, c, tier);
+            document.getElementById('chanceResult').innerHTML = `Chance para Tier ${tier}: ${chance.toFixed(2)}%`;
+            
+            // Atualizar gráfico
+            criarGrafico(a, b, c);
+        }
+
+        function gerarTabelaTiers() {
+            const a = parseFloat(document.getElementById('coefA').value);
+            const b = parseFloat(document.getElementById('coefB').value);
+            const c = parseFloat(document.getElementById('coefC').value);
+            
+            if (isNaN(a) || isNaN(b) || isNaN(c)) {
+                document.getElementById('tierTableBody').innerHTML = "<tr><td colspan='2'>Valores inválidos</td></tr>";
+                return;
+            }
+            
+            let tableHtml = '';
+            
+            for (let tier = 1; tier <= 10; tier++) {
+                const chance = quadraticPoly(a, b, c, tier);
+                tableHtml += `<tr><td>${tier}</td><td>${chance.toFixed(2)}%</td></tr>`;
+            }
+            
+            document.getElementById('tierTableBody').innerHTML = tableHtml;
+        }
+
+        function criarGrafico(a, b, c) {
+            const ctx = document.getElementById('chanceChart').getContext('2d');
+            
+            // Dados para o gráfico
+            const labels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+            const data = labels.map(tier => quadraticPoly(a, b, c, tier));
+            
+            // Destruir gráfico existente se houver
+            if (chart) {
+                chart.destroy();
+            }
+            
+            // Criar novo gráfico
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Chance por Tier (%)',
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Chance (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Tier'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Função para resolver sistema de equações de segundo grau e encontrar coeficientes A, B, C
+        function calcularCoeficientes() {
+            const tier1 = parseInt(document.getElementById('tier1').value);
+            const tier2 = parseInt(document.getElementById('tier2').value);
+            const tier3 = parseInt(document.getElementById('tier3').value);
+            
+            const chance1 = parseFloat(document.getElementById('chance1').value);
+            const chance2 = parseFloat(document.getElementById('chance2').value);
+            const chance3 = parseFloat(document.getElementById('chance3').value);
+            
+            // Validação básica
+            if (isNaN(tier1) || isNaN(tier2) || isNaN(tier3) || 
+                isNaN(chance1) || isNaN(chance2) || isNaN(chance3) || 
+                tier1 < 1 || tier2 < 1 || tier3 < 1 ||
+                tier1 > 10 || tier2 > 10 || tier3 > 10) {
+                document.getElementById('coefResult').innerHTML = "Valores inválidos. Verifique os campos.";
+                return;
+            }
+            
+            // Verificar se há tiers repetidos
+            if (tier1 === tier2 || tier1 === tier3 || tier2 === tier3) {
+                document.getElementById('coefResult').innerHTML = "Os tiers devem ser diferentes.";
+                return;
+            }
+            
+            // Montar sistema matricial
+            const matrix = [
+                [tier1*tier1, tier1, 1],
+                [tier2*tier2, tier2, 1],
+                [tier3*tier3, tier3, 1]
+            ];
+            
+            const vector = [chance1, chance2, chance3];
+            
+            // Resolver sistema usando eliminação de Gauss
+            const n = 3;
+            
+            for (let i = 0; i < n; i++) {
+                // Encontrar o pivô
+                let maxEl = Math.abs(matrix[i][i]);
+                let maxRow = i;
+                
+                for (let k = i + 1; k < n; k++) {
+                    if (Math.abs(matrix[k][i]) > maxEl) {
+                        maxEl = Math.abs(matrix[k][i]);
+                        maxRow = k;
+                    }
+                }
+                
+                // Trocar linhas se necessário
+                if (maxRow !== i) {
+                    for (let k = i; k < n; k++) {
+                        const tmp = matrix[i][k];
+                        matrix[i][k] = matrix[maxRow][k];
+                        matrix[maxRow][k] = tmp;
+                    }
+                    const tmp = vector[i];
+                    vector[i] = vector[maxRow];
+                    vector[maxRow] = tmp;
+                }
+                
+                // Eliminar valores abaixo do pivô
+                for (let k = i + 1; k < n; k++) {
+                    const factor = -matrix[k][i] / matrix[i][i];
+                    for (let j = i; j < n; j++) {
+                        if (i === j) {
+                            matrix[k][j] = 0;
+                        } else {
+                            matrix[k][j] += factor * matrix[i][j];
+                        }
+                    }
+                    vector[k] += factor * vector[i];
+                }
+            }
+            
+            // Resolver sistema triangular superior
+            const coef = new Array(n);
+            
+            for (let i = n - 1; i >= 0; i--) {
+                coef[i] = vector[i];
+                for (let j = i + 1; j < n; j++) {
+                    coef[i] -= matrix[i][j] * coef[j];
+                }
+                coef[i] /= matrix[i][i];
+            }
+            
+            // Exibir resultados
+            const resultHtml = `
+                <p>Coeficiente A: ${coef[0].toFixed(7)}</p>
+                <p>Coeficiente B: ${coef[1].toFixed(7)}</p>
+                <p>Coeficiente C: ${coef[2].toFixed(7)}</p>
+                <pre>
+ruseChanceFormulaA = ${coef[0].toFixed(7)}
+ruseChanceFormulaB = ${coef[1].toFixed(7)}
+ruseChanceFormulaC = ${coef[2].toFixed(7)}
+                </pre>
+            `;
+            document.getElementById('coefResult').innerHTML = resultHtml;
+            
+            // Preencher os valores na primeira calculadora
+            document.getElementById('coefA').value = coef[0].toFixed(7);
+            document.getElementById('coefB').value = coef[1].toFixed(7);
+            document.getElementById('coefC').value = coef[2].toFixed(7);
+            
+            // Atualizar tabela e gráfico
+            calcularChance();
+            gerarTabelaTiers();
+        }
+
+        // Iniciar com valores padrão
+        window.onload = () => {
+            loadPreset('ruse');
+            gerarTabelaTiers();
+        };
+    </script>
+</body>
+</html>
