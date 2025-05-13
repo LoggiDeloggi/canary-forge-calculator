@@ -1,0 +1,24 @@
+title: Calculadora de Fórmula de Chance
+description: Uma calculadora para calcular chances baseadas em fórmulas quadráticas.
+baseurl: ""
+url: "http://localhost:4000"
+author:
+  name: "Seu Nome"
+  email: "seuemail@example.com"
+theme: "minimal"
+markdown: kramdown
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - _config.yml
+  - _layouts
+  - _includes
+  - _data
+  - assets
+  - pages
+  - index.html
+  - calculadora.html

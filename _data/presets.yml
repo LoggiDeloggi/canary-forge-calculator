@@ -1,0 +1,17 @@
+coeficientes:
+  ruse:
+    a: 0.0307576
+    b: 1.440697
+    c: 0.026
+  onslaught:
+    a: 0.05
+    b: 1.7
+    c: 0.05
+  momentum:
+    a: 0.05
+    b: 1.9
+    c: 0.05
+  transcendance:
+    a: 0.0127
+    b: 1.0271
+    c: 0.0073
